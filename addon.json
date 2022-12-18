@@ -1,0 +1,13 @@
+{
+	"title" : "Favorites",
+	"type"  : "tool",
+	"tags"  : [ "build", "fun" ],
+	"ignore" :
+	[
+		"Makefile",
+		"favorites.gma",
+		"icon.jpg",
+		"showcase-1.png",
+		"showcase-2.png"
+	]
+}
