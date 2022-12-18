@@ -1,6 +1,5 @@
 ---- favorties.lua - Clientside entry script.
 
--- TODO: persistent convars
 -- TODO: convar to change bind from E
 -- TODO: accurate names
 -- TODO: simfphys vehicles
@@ -27,8 +26,8 @@ local g_file = "favorites/favorites.json"
 local g_nodeIndex = 0
 local g_ctrl = nil
 
-CreateConVar("favorites_save_weapon", "1")
-CreateConVar("favorites_tutorial", "1")
+CreateClientConVar("favorites_save_weapon", "1")
+CreateClientConVar("favorites_tutorial", "1")
 
 --- Functions
 
@@ -181,10 +180,10 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 					if weapon.ClassName == nil then continue end -- Skip if invalid.
 
 					local p = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
-						nicename	= weapon.PrintName or weapon.ClassName,
-						spawnname	= weapon.ClassName,
-						material	= weapon.IconOverride or "entities/" .. weapon.ClassName .. ".png",
-						admin		  = weapon.AdminOnly
+						nicename  = weapon.PrintName or weapon.ClassName,
+						spawnname = weapon.ClassName,
+						material  = weapon.IconOverride or "entities/" .. weapon.ClassName .. ".png",
+						admin     = weapon.AdminOnly
 					})
 					p.DragHoverClick = function(hoverTime)
 						local icon = dragndrop.GetDroppable()[1]
@@ -210,11 +209,11 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				for k, npc in pairs(g_favorites.npcs) do
 					local entity = GetEntityFromList("NPC", npc)
 					spawnmenu.CreateContentIcon("npc", self.PropPanel, {
-						nicename	= entity.Name or npc,
+						nicename  = entity.Name or npc,
 						spawnname = npc,
-						material	= entity.IconOverride or "entities/" .. npc .. ".png",
-						weapon		= entity.Weapons,
-						admin		  = entity.AdminOnly
+						material  = entity.IconOverride or "entities/" .. npc .. ".png",
+						weapon    = entity.Weapons,
+						admin     = entity.AdminOnly
 					})
 				end
 			end
@@ -227,10 +226,10 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 					local class = list.Get("Vehicles")[vehicle].Class
 					local entity = GetEntityFromList("Vehicles", class)
 					spawnmenu.CreateContentIcon("vehicle", self.PropPanel, {
-						nicename	= entity.Name or entity.Class,
+						nicename  = entity.Name or entity.Class,
 						spawnname = vehicle,
-						material	= entity.IconOverride or "entities/" .. vehicle .. ".png",
-						admin		  = entity.AdminOnly
+						material  = entity.IconOverride or "entities/" .. vehicle .. ".png",
+						admin     = entity.AdminOnly
 					})
 				end
 			end
@@ -241,10 +240,10 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				for k, entityName in pairs(g_favorites.entities) do
 					local entity = GetEntityFromList("SpawnableEntities", entityName)
 					spawnmenu.CreateContentIcon(entity.ScriptedEntityType or "entity", self.PropPanel, {
-						nicename	= entity.PrintName or entityName,
+						nicename  = entity.PrintName or entityName,
 						spawnname = entityName,
-						material	= entity.IconOverride or "entities/" .. entityName .. ".png",
-						admin		  = entity.AdminOnly
+						material  = entity.IconOverride or "entities/" .. entityName .. ".png",
+						admin     = entity.AdminOnly
 					})
 				end
 			end
@@ -254,10 +253,10 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				Header(self, "Dupes")
 				for k, dupe in pairs(g_favorites.dupes) do
 					local currentWeapon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
-						nicename	= dupe,
-						spawnname	= "__dupe",
-						material	= "dupes/" .. dupe .. ".jpg",
-						admin		  = false
+						nicename  = dupe,
+						spawnname = "__dupe",
+						material  = "dupes/" .. dupe .. ".jpg",
+						admin     = false
 					})
 					currentWeapon.DoClick = function() -- Evil hack #2 >:^).
 						surface.PlaySound("ui/buttonclickrelease.wav") -- Fake spawn sound.
