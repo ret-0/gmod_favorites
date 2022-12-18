@@ -8,6 +8,10 @@
 		"favorites.gma",
 		"icon.jpg",
 		"showcase-1.png",
-		"showcase-2.png"
+		"showcase-2.png",
+		".git",
+		".gitignore",
+		"LICENSE",
+		"README.md"
 	]
 }
