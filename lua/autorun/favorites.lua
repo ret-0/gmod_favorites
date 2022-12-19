@@ -1,7 +1,5 @@
 ---- favorties.lua - Clientside entry script.
 
--- TODO: handle uninstalled addons "[Favorites] lua/autorun/favorites.lua:243: attempt to index local 'entity' (a nil value)"
---       do this by removing nil stuff from the lists
 -- TODO: accurate names
 -- TODO: workshop dupes
 -- TODO: simfphys vehicles
@@ -82,6 +80,24 @@ function GetEntityFromList(listName, className)
 		end
 	end
 	return entity
+end
+
+-- table TableRemove(table t, function(t, i, j) fnKeep): Optimized table element removal function.
+function TableRemove(t, fnKeep)
+	local j, n = 1, #t
+	for i = 1, n do
+		if (fnKeep(t, i, j)) then
+			-- Move i's kept value to j's position, if it's not already there.
+			if (i ~= j) then
+				t[j] = t[i]
+				t[i] = nil
+			end
+			j = j + 1 -- Increment position of where we'll place the next kept value.
+		else
+			t[i] = nil
+		end
+	end
+	return t
 end
 
 -- SaveEmpty(string f): Writes empty favorites table as JSON to file.
@@ -180,10 +196,20 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			if table.IsEmpty(g_favorites.weapons) == false then
 				empty = false
 				if saveCurrentWeapon == false then Header(self, "Weapons") end
-				for k, weapon in pairs(g_favorites.weapons) do
-					-- (The continue statement isn't standard, it's a gmod implemented operator. Wild.)
-					if weapon.ClassName == nil then continue end -- Skip if invalid.
 
+				local save = false
+				TableRemove(g_favorites.weapons, function(t, i, j) -- TODO: more explicit
+					if t[i].ClassName == nil then -- Delete if invalid.
+						print("Removing invalid weapon:")
+						PrintTable(t[i])
+						save = true
+						return false
+					end
+					return true
+				end)
+				if save then Save(g_file) end
+
+				for k, weapon in pairs(g_favorites.weapons) do
 					local p = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
 						nicename  = weapon.PrintName or weapon.ClassName,
 						spawnname = weapon.ClassName,
@@ -203,6 +229,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			if table.IsEmpty(g_favorites.props) == false then
 				empty = false
 				Header(self, "Props")
+				-- Removing invalid props is both hard to do, and won't really break anything; just show an error model.
 				for k, prop in pairs(g_favorites.props) do
 					spawnmenu.CreateContentIcon("model", self.PropPanel, {model = prop})
 				end
@@ -211,6 +238,18 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			if table.IsEmpty(g_favorites.npcs) == false then
 				empty = false
 				Header(self, "NPCs")
+
+				local save = false
+				TableRemove(g_favorites.npcs, function(t, i, j)
+					if GetEntityFromList("NPC", t[i]) == nil then -- Delete if invalid.
+						print("Removing invalid NPC: " .. t[i] .. "!")
+						save = true
+						return false
+					end
+					return true
+				end)
+				if save then Save(g_file) end
+
 				for k, npc in pairs(g_favorites.npcs) do
 					local entity = GetEntityFromList("NPC", npc)
 					spawnmenu.CreateContentIcon("npc", self.PropPanel, {
@@ -226,6 +265,18 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			if table.IsEmpty(g_favorites.vehicles) == false then
 				empty = false
 				Header(self, "Vehicles")
+
+				local save = false
+				TableRemove(g_favorites.vehicles, function(t, i, j)
+					if GetEntityFromList("Vehicles", t[i]) == nil then -- Delete if invalid.
+						print("Removing invalid vehicle: " .. t[i] .. "!")
+						save = true
+						return false
+					end
+					return true
+				end)
+				if save then Save(g_file) end
+
 				for k, vehicle in pairs(g_favorites.vehicles) do
 					-- This is stupid.
 					local class = list.Get("Vehicles")[vehicle].Class
@@ -242,6 +293,18 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			if table.IsEmpty(g_favorites.entities) == false then
 				empty = false
 				Header(self, "Entities")
+
+				local save = false
+				TableRemove(g_favorites.entities, function(t, i, j)
+					if GetEntityFromList("SpawnableEntities", t[i]) == nil then -- Delete if invalid.
+						print("Removing invalid entity: " .. t[i] .. "!")
+						save = true
+						return false
+					end
+					return true
+				end)
+				if save then Save(g_file) end
+
 				for k, entityName in pairs(g_favorites.entities) do
 					local entity = GetEntityFromList("SpawnableEntities", entityName)
 					spawnmenu.CreateContentIcon(entity.ScriptedEntityType or "entity", self.PropPanel, {
@@ -256,6 +319,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			if table.IsEmpty(g_favorites.dupes) == false then
 				empty = false
 				Header(self, "Dupes")
+				-- Same deal with dupes, they don't really cause any problems if broken.
 				for k, dupe in pairs(g_favorites.dupes) do
 					local currentWeapon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
 						nicename  = dupe,
