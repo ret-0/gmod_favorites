@@ -1,10 +1,14 @@
 ---- favorties.lua - Clientside entry script.
 
--- TODO: convar to change bind from E
+-- TODO: handle uninstalled addons "[Favorites] lua/autorun/favorites.lua:243: attempt to index local 'entity' (a nil value)"
+--       do this by removing nil stuff from the lists
 -- TODO: accurate names
+-- TODO: workshop dupes
 -- TODO: simfphys vehicles
--- TODO: support for Urban Decay
+-- TODO: for Urban Decay
+-- TODO: zeta players
 -- TODO: find source of invalid entity creation
+-- TODO: add custom category for hotbar that modifies it when edited
 -- TODO: "New Text Label" button.
 
 --- Globals
@@ -28,6 +32,7 @@ local g_ctrl = nil
 
 CreateClientConVar("favorites_save_weapon", "1")
 CreateClientConVar("favorites_tutorial", "1")
+CreateClientConVar("favorites_key", tostring(KEY_E))
 
 --- Functions
 
@@ -307,7 +312,7 @@ function drawer:AddCheckbox(text, cvar)
 	DermaCheckbox:DockMargin(0, 5, 0, 0)
 end
 function drawer:Init()
-	self:SetOpenSize(150)
+	self:SetOpenSize(200)
 	self:DockPadding(15, 10, 15, 10)
 
 	local text = vgui.Create("DTextEntry", self)
@@ -349,6 +354,19 @@ function drawer:Init()
 		print("Deleted " .. g_file .. "!")
 	end
 
+	local bLabel = vgui.Create("DLabel", self)
+	bLabel:Dock(TOP)
+	bLabel:DockMargin(0, 0, 0, 0)
+	bLabel:SetSize(25, 25)
+	bLabel:SetTextColor(Color(0, 0, 0))
+	bLabel:SetText("Favorite Key Bind:")
+	local binder = vgui.Create("DBinder", self)
+	binder:Dock(TOP)
+	binder:DockMargin(0, 0, 0, 0)
+	binder:SetSize(20, 20)
+	binder:SetValue(GetConVar("favorites_key"):GetInt())
+	function binder:OnChange(key) RunConsoleCommand("favorites_key", tostring(key)) end
+
 	self:AddCheckbox("Show \"Save Current Weapon\"?", "favorites_save_weapon")
 	self:AddCheckbox("Show tutorial?", "favorites_tutorial")
 
@@ -376,14 +394,16 @@ hook.Add("OnSpawnMenuOpen", "MenuOpen", function() g_menuOpen = true end)
 hook.Add("OnSpawnMenuClose", "MenuClose", function() g_menuOpen = false end)
 
 -- This is where we actually favorite things.
--- Every keypress we check if the menu is open and if the favorite key is pressed.
+-- Every tick we check if the menu is open and if the favorite key is pressed.
 -- If these are both true: we grab what the currently hovered VGUI panel is.
 -- From there we parse the panel for what type of item it contains, and that
 -- items information (unique to each type).
 -- I dislike this solution but I see no alternative for the time being.
-hook.Add("KeyPress", "Favorite", function(ply, button)
+local g_firstPressed = false
+hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it's the only way binds work in singleplayer.
 	if g_menuOpen == false then return end
-	if button == IN_USE then
+	local cache = input.IsButtonDown(GetConVar("favorites_key"):GetInt())
+	if cache and g_firstPressed then
 		local hovered = vgui.GetHoveredPanel()
 		if hovered == nil then return end -- No panel hovered.
 		-- PrintTable(hovered:GetTable())
@@ -432,6 +452,7 @@ hook.Add("KeyPress", "Favorite", function(ply, button)
 			input.SetCursorPos(x, y)
 		end
 	end
+	g_firstPressed = not cache
 end)
 
 if spawnmenu != nil then RunConsoleCommand("spawnmenu_reload") end -- Reload the Spawn Menu so our changes take effect.
