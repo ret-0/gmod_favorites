@@ -6,6 +6,7 @@
 -- TODO: for Urban Decay
 -- TODO: zeta players
 -- TODO: find source of invalid entity creation
+-- TODO: rename categories
 -- TODO: add custom category for hotbar that modifies it when edited
 -- TODO: "New Text Label" button.
 
@@ -31,6 +32,7 @@ local g_ctrl = nil
 CreateClientConVar("favorites_save_weapon", "1")
 CreateClientConVar("favorites_tutorial", "1")
 CreateClientConVar("favorites_key", tostring(KEY_E))
+CreateClientConVar("favorites_use_mode", "0")
 
 --- Functions
 
@@ -374,7 +376,9 @@ function drawer:AddCheckbox(text, cvar)
 	DermaCheckbox:SetConVar(cvar)
 	DermaCheckbox:SizeToContents()
 	DermaCheckbox:DockMargin(0, 5, 0, 0)
+	return DermaCheckbox
 end
+local g_skipChange = true
 function drawer:Init()
 	self:SetOpenSize(200)
 	self:DockPadding(15, 10, 15, 10)
@@ -430,6 +434,19 @@ function drawer:Init()
 	binder:SetSize(20, 20)
 	binder:SetValue(GetConVar("favorites_key"):GetInt())
 	function binder:OnChange(key) RunConsoleCommand("favorites_key", tostring(key)) end
+	local useMode = GetConVar("favorites_use_mode"):GetBool()
+	if useMode then binder:SetEnabled(false) end
+	local useModeCheckBox = self:AddCheckbox("+use Mode", "favorites_use_mode")
+	useModeCheckBox.OnChange = function(bVal)
+		if g_skipChange then -- Very dumb.
+			g_skipChange = false
+			return
+		end
+		if bVal != useMode then
+			g_skipChange = true
+			RunConsoleCommand("spawnmenu_reload")
+		end
+	end
 
 	self:AddCheckbox("Show \"Save Current Weapon\"?", "favorites_save_weapon")
 	self:AddCheckbox("Show tutorial?", "favorites_tutorial")
@@ -466,7 +483,11 @@ hook.Add("OnSpawnMenuClose", "MenuClose", function() g_menuOpen = false end)
 local g_firstPressed = false
 hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it's the only way binds work in singleplayer.
 	if g_menuOpen == false then return end
-	local cache = input.IsButtonDown(GetConVar("favorites_key"):GetInt())
+
+	local cache
+	if GetConVar("favorites_use_mode"):GetBool() then cache = LocalPlayer():KeyDown(IN_USE)
+	else cache = input.IsButtonDown(GetConVar("favorites_key"):GetInt()) end
+
 	if cache and g_firstPressed then
 		local hovered = vgui.GetHoveredPanel()
 		if hovered == nil then return end -- No panel hovered.
