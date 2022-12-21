@@ -1,6 +1,8 @@
 ---- favorties.lua - Clientside entry script.
 
 -- TODO: accurate names
+-- TODO: skinned items
+-- TODO: modifiable spawnmenu position
 -- TODO: workshop dupes
 -- TODO: simfphys vehicles
 -- TODO: for Urban Decay
@@ -270,7 +272,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 				local save = false
 				TableRemove(g_favorites.vehicles, function(t, i, j)
-					if GetEntityFromList("Vehicles", t[i]) == nil then -- Delete if invalid.
+					if GetEntityFromList("Vehicles", t[i]) == nil and GetEntityFromList("simfphys_vehicles", t[i]) == nil then -- Delete if invalid.
 						print("Removing invalid vehicle: " .. t[i] .. "!")
 						save = true
 						return false
@@ -280,15 +282,20 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				if save then Save(g_file) end
 
 				for k, vehicle in pairs(g_favorites.vehicles) do
-					-- This is stupid.
-					local class = list.Get("Vehicles")[vehicle].Class
-					local entity = GetEntityFromList("Vehicles", class)
-					spawnmenu.CreateContentIcon("vehicle", self.PropPanel, {
-						nicename  = entity.Name or entity.Class,
+					local simfphys = GetEntityFromList("simfphys_vehicles", vehicle)
+					local entity = GetEntityFromList("Vehicles", vehicle) or simfphys
+					local icon = spawnmenu.CreateContentIcon("vehicle", self.PropPanel, {
+						nicename  = entity.Name or vehicle,
 						spawnname = vehicle,
 						material  = entity.IconOverride or "entities/" .. vehicle .. ".png",
 						admin     = entity.AdminOnly
 					})
+					if simfphys != nil then
+						icon.DoClick = function()
+							surface.PlaySound("ui/buttonclickrelease.wav") -- Fake spawn sound.
+							RunConsoleCommand("simfphys_spawnvehicle", vehicle)
+						end
+					end
 				end
 			end
 
@@ -329,8 +336,8 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 						material  = "dupes/" .. dupe .. ".jpg",
 						admin     = false
 					})
-					currentWeapon.DoClick = function() -- Evil hack #2 >:^).
-						surface.PlaySound("ui/buttonclickrelease.wav") -- Fake spawn sound.
+					currentWeapon.DoClick = function()
+						surface.PlaySound("ui/buttonclickrelease.wav")
 						RunConsoleCommand("dupe_arm", "dupes/" .. dupe .. ".dupe")
 					end
 				end
@@ -510,7 +517,7 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 			elseif t.m_Type == "npc" then
 				Toggle(g_favorites.npcs, t.m_SpawnName)
 				SaveRefresh()
-			elseif t.m_Type == "vehicle" then
+			elseif t.m_Type == "vehicle" or t.m_Type == "simfphys_vehicles" then
 				Toggle(g_favorites.vehicles, t:GetSpawnName())
 				SaveRefresh()
 			elseif t.m_Type == "entity" then
