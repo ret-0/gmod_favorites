@@ -4,7 +4,6 @@
 -- TODO: skinned items
 -- TODO: modifiable spawnmenu position
 -- TODO: workshop dupes
--- TODO: simfphys vehicles
 -- TODO: for Urban Decay
 -- TODO: zeta players
 -- TODO: find source of invalid entity creation
