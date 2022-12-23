@@ -3,9 +3,8 @@
 -- TODO: accurate names
 -- TODO: skinned items
 -- TODO: modifiable spawnmenu position
+-- TODO: subfolders of folders
 -- TODO: workshop dupes
--- TODO: for Urban Decay
--- TODO: zeta players
 -- TODO: find source of invalid entity creation
 -- TODO: rename categories
 -- TODO: add custom category for hotbar that modifies it when edited
@@ -41,7 +40,7 @@ CreateClientConVar("favorites_use_mode", "0")
 function Find(t, item)
 	local contains = 0
 	for k, w in pairs(t) do
-		if w == item or w.ClassName == item then -- Handles both regular item strings and weapon tables.
+		if w == item or w.ClassName == item or (item.isPill and item.icon == item.icon) then -- Handles a lot of cases.
 			contains = k
 			break
 		end
@@ -139,6 +138,16 @@ function Text(self, text)
 	panel:SizeToContents()
 	panel:SetAutoStretchVertical(true)
 	self.PropPanel:Add(panel)
+end
+
+-- PillFromPanel(table t): Construct a pill from a panel.
+function PillFromPanel(t)
+	local pill = {}
+	pill.isPill = true
+	pill.name = t.m_MaterialName:gsub("pills/", ""):gsub(".png", "") -- This seems to be the easiest way to extract the spawnname.
+	pill.printName = t.m_NiceName
+	pill.icon = t.m_MaterialName
+	return pill
 end
 
 --- Main
@@ -304,7 +313,15 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 				local save = false
 				TableRemove(g_favorites.entities, function(t, i, j)
-					if GetEntityFromList("SpawnableEntities", t[i]) == nil then -- Delete if invalid.
+					if t[i].isPill then return true end -- TODO: We'll cross that bridge when we get to it.
+					if -- Jesus fucking christ.
+					GetEntityFromList("SpawnableEntities", t[i]) == nil and
+					GetEntityFromList("gDisasters_Equipment", t[i]) == nil and
+					GetEntityFromList("gDisasters_Weapons", t[i]) == nil and
+					GetEntityFromList("gDisasters_Weather", t[i]) == nil and
+					GetEntityFromList("gDisasters_Buildings", t[i]) == nil and
+					GetEntityFromList("gDisasters_Disasters", t[i]) == nil
+					then -- Delete if invalid.
 						print("Removing invalid entity: " .. t[i] .. "!")
 						save = true
 						return false
@@ -313,14 +330,36 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				end)
 				if save then Save(g_file) end
 
-				for k, entityName in pairs(g_favorites.entities) do
-					local entity = GetEntityFromList("SpawnableEntities", entityName)
-					spawnmenu.CreateContentIcon(entity.ScriptedEntityType or "entity", self.PropPanel, {
-						nicename  = entity.PrintName or entityName,
-						spawnname = entityName,
-						material  = entity.IconOverride or "entities/" .. entityName .. ".png",
-						admin     = entity.AdminOnly
-					})
+				for k, e in pairs(g_favorites.entities) do
+					if e.isPill then
+						local icon = spawnmenu.CreateContentIcon("entity", self.PropPanel, {
+							nicename  = e.printName or e.name,
+							spawnname = e.name,
+							material  = e.icon,
+							admin     = false -- Fuck you I don't care.
+						})
+						icon.DoClick = function()
+							surface.PlaySound("ui/buttonclickrelease.wav")
+							RunConsoleCommand("pk_pill_apply", e.name)
+						end
+						-- Used to identify pills in untoggling.
+						icon.isPill = true
+						icon.m_MaterialName = e.icon
+						icon.m_NiceName = e.printName
+					else
+						local entity = GetEntityFromList("SpawnableEntities", e) or
+							GetEntityFromList("gDisasters_Equipment", e) or -- "WOULDN'T IT BE FUNNY IF WE HAD 5 SEPERATE LISTS FOR FUCKING ENTITIES :)))"
+							GetEntityFromList("gDisasters_Weapons", e)   or
+							GetEntityFromList("gDisasters_Weather", e)   or
+							GetEntityFromList("gDisasters_Buildings", e) or
+							GetEntityFromList("gDisasters_Disasters", e)
+						spawnmenu.CreateContentIcon(entity.ScriptedEntityType or "entity", self.PropPanel, {
+							nicename  = entity.Name or entity.PrintName or e,
+							spawnname = e,
+							material  = entity.IconOverride or "entities/" .. e .. ".png",
+							admin     = entity.AdminOnly
+						})
+					end
 				end
 			end
 
@@ -499,7 +538,8 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 		if hovered == nil then return end -- No panel hovered.
 		-- PrintTable(hovered:GetTable())
 
-		if hovered:GetName() == "ContentIcon" then
+		local panelName = hovered:GetName()
+		if panelName == "ContentIcon" or panelName == "UCWepSel" then -- Urban Decay is stupid.
 			surface.PlaySound("ui/buttonclick.wav")
 			local t = hovered:GetTable()
 
@@ -520,7 +560,11 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 				Toggle(g_favorites.vehicles, t:GetSpawnName())
 				SaveRefresh()
 			elseif t.m_Type == "entity" then
-				Toggle(g_favorites.entities, t.m_SpawnName)
+				if t.isPill then Toggle(g_favorites.entities, PillFromPanel(t))
+				else Toggle(g_favorites.entities, t.m_SpawnName) end
+				SaveRefresh()
+			elseif t.m_Type == "pill" then
+				Toggle(g_favorites.entities, PillFromPanel(t)) -- Yeah it's kinda an entity, sure whatever.
 				SaveRefresh()
 			end
 		elseif hovered:GetName() == "SpawnIcon" then
