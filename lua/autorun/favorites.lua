@@ -3,7 +3,6 @@
 
 --- Tier 1: Crashes, Major Performance Problems
 --- Tier 2: Non-Fatal Bugs
--- TODO: skinned items
 --- Tier 3: Addon Support
 -- TODO: fix pills and weather
 -- TODO: lfs support (???)
@@ -66,7 +65,6 @@ function ToggleWeapon(weapon, printName)
 	if i != 0 then table.remove(g_favorites.weapons, i) else
 		local w = weapons.Get(weapon)
 		if w != nil then table.insert(g_favorites.weapons, w) else
-			print(weapon .. " " .. printName)
 			-- HL2 Weapon Fix: This is ridiculous and really shouldn't work as well as it does but sure whatever man. :^)
 			local fakeWeapon = {}
 			fakeWeapon.ClassName = weapon
@@ -248,7 +246,15 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				Header(self, "Props")
 				-- Removing invalid props is both hard to do, and won't really break anything; just show an error model.
 				for k, prop in pairs(g_favorites.props) do
-					spawnmenu.CreateContentIcon("model", self.PropPanel, {model = prop})
+					local mdl = prop
+					local skinID = nil
+					if string.match(prop, ":") then
+						local s1, _ = prop:gsub(":.*", "")
+						local s2, _ = prop:gsub(".*:", "")
+						mdl = s1
+						skinID = tonumber(s2)
+					end
+					spawnmenu.CreateContentIcon("model", self.PropPanel, {model = mdl, skin = skinID})
 				end
 			end
 
@@ -578,7 +584,9 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 			end
 		elseif hovered:GetName() == "SpawnIcon" then
 			surface.PlaySound("ui/buttonclick.wav")
-			Toggle(g_favorites.props, hovered:GetModelName())
+			local name = hovered:GetModelName()
+			if hovered.m_iSkin != 0 then name = name .. ":" .. tostring(hovered.m_iSkin) end -- Append skin ID if any.
+			Toggle(g_favorites.props, name)
 			SaveRefresh()
 		elseif hovered.ClassName == "DHTML" then
 			--- This code is utterly fucking cursed.
