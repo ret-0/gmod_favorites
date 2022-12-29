@@ -1,14 +1,19 @@
 ---- favorties.lua - Clientside entry script.
+--- https://github.com/ret-0/gmod_favorites
 
--- TODO: accurate names
+--- Tier 1: Crashes, Major Performance Problems
+--- Tier 2: Non-Fatal Bugs
 -- TODO: skinned items
+--- Tier 3: Addon Support
+-- TODO: fix pills and weather
+-- TODO: lfs support (???)
+-- TODO: workshop dupes
+--- Tier 4: Additional Features
 -- TODO: modifiable spawnmenu position
 -- TODO: subfolders of folders
--- TODO: workshop dupes
--- TODO: find source of invalid entity creation
 -- TODO: rename categories
 -- TODO: add custom category for hotbar that modifies it when edited
--- TODO: "New Text Label" button.
+-- TODO: "New Text Label" button
 
 --- Globals
 
@@ -264,8 +269,12 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 				for k, npc in pairs(g_favorites.npcs) do
 					local entity = GetEntityFromList("NPC", npc)
+					local nameOverride = nil -- Fixes for weird name overlaps.
+					if npc == "npc_combine_s" then nameOverride = "Combine Soldier" -- Would be "Combine Elite".
+					elseif npc == "npc_vortigaunt" then nameOverride = "Vortigaunt" end -- Would be "Uriah".
+
 					spawnmenu.CreateContentIcon("npc", self.PropPanel, {
-						nicename  = entity.Name or npc,
+						nicename  = nameOverride or entity.Name or npc,
 						spawnname = npc,
 						material  = entity.IconOverride or "entities/" .. npc .. ".png",
 						weapon    = entity.Weapons,
