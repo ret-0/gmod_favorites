@@ -1,17 +1,20 @@
----- favorties.lua - Clientside entry script.
+---- favorites.lua
 --- https://github.com/ret-0/gmod_favorites
+--- https://steamcommunity.com/sharedfiles/filedetails/?id=2901526545
 
 --- Tier 1: Crashes, Major Performance Problems
 --- Tier 2: Non-Fatal Bugs
 --- Tier 3: Addon Support
 -- TODO: fix pills and weather
--- TODO: lfs support (???)
 -- TODO: workshop dupes
+-- TODO: bodygroups
 --- Tier 4: Additional Features
+-- TODO: clear tab
 -- TODO: modifiable spawnmenu position
--- TODO: subfolders of folders
+-- TODO: right click change category
 -- TODO: rename categories
--- TODO: add custom category for hotbar that modifies it when edited
+-- TODO: add custom category for spawn weapons that modifies it when edited
+-- TODO: subfolders of folders
 -- TODO: "New Text Label" button
 
 --- Globals
@@ -163,6 +166,29 @@ if file.Exists("favorites.json", "DATA") then -- Move old favorites.json to favo
 end
 Load(g_file) -- Load favorites/favorites.json.
 
+if CLIENT then -- This is madness.
+	local originalStopDragging = dragndrop.StopDragging
+	dragndrop.StopDragging = function()
+		local src = dragndrop.GetDroppable()[1]
+		local dst = vgui.GetHoveredPanel()
+		if dst == nil then return end
+		local panelName = dst:GetName()
+
+		if (panelName == "ContentIcon" or panelName == "SpawnIcon") and dst.f_table != nil and dst.f_table == src.f_table then
+			local n = dst.f_index
+			if n < 1 then n = 1 end
+			TableRemove(dst.f_table, function(t, i, j)
+				if i == src.f_index then return false end
+				return true
+			end)
+			table.insert(dst.f_table, n, src.f_item)
+			SaveRefresh()
+		end
+
+		return originalStopDragging()
+	end
+end
+
 hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree, node)
 	g_tree = tree -- We save the tree so the favoriting routines can call InternalDoClick() refreshing the page.
 
@@ -187,6 +213,47 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			self.PropPanel = vgui.Create("ContentContainer", panelContent)
 			self.PropPanel:SetVisible(false)
 			self.PropPanel:SetTriggerSpawnlistChange(false)
+
+			-- This is scuffed lol.
+			local moveIndicatorBG = vgui.Create("DPanel", self.PropPanel)
+			moveIndicatorBG:SetSize(0, 0)
+			moveIndicatorBG:SetPos(0, 0)
+			moveIndicatorBG:SetVisible(false)
+			function moveIndicatorBG:Paint(w, h)
+				draw.RoundedBox(10, 0, 0, w, h, Color(255, 255, 255, 255))
+			end
+			local moveIndicator = vgui.Create("DPanel", self.PropPanel)
+			moveIndicator:SetSize(0, 0)
+			moveIndicator:SetPos(0, 0)
+			moveIndicator:SetVisible(false)
+			function moveIndicator:Paint(w, h)
+				moveIndicatorBG:CopyBounds(moveIndicator)
+				local x, y = moveIndicatorBG:GetPos()
+				local w, h = moveIndicatorBG:GetSize()
+				moveIndicatorBG:SetPos(x - 1, y - 1)
+				moveIndicatorBG:SetSize(w + 2, h + 2)
+				draw.RoundedBox(8, 0, 0, w, h, Color(255, 120, 255, 255))
+			end
+			local originalPaint = self.PropPanel.Paint
+			self.PropPanel.Paint = function(w, h) -- Called every frame.
+				local hovered = vgui.GetHoveredPanel()
+				if hovered == nil then return end
+				local panelName = hovered:GetName()
+
+				if dragndrop.IsDragging() and (panelName == "ContentIcon" or panelName == "SpawnIcon") then
+					moveIndicator:SetVisible(true)
+					moveIndicatorBG:SetVisible(true)
+					moveIndicator:CopyBounds(hovered)
+					moveIndicator:SetWidth(2.35)
+					local x, y = moveIndicator:GetPos()
+					moveIndicator:SetPos(x - 1, y)
+				else
+					moveIndicator:SetVisible(false)
+					moveIndicatorBG:SetVisible(false)
+				end
+
+				originalPaint(w, h)
+			end
 
 			local saveCurrentWeapon = GetConVar("favorites_save_weapon"):GetBool()
 			if saveCurrentWeapon then
@@ -224,20 +291,16 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				end)
 				if save then Save(g_file) end
 
-				for k, weapon in pairs(g_favorites.weapons) do
+				for i, weapon in pairs(g_favorites.weapons) do
 					local p = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
 						nicename  = weapon.PrintName or weapon.ClassName,
 						spawnname = weapon.ClassName,
 						material  = weapon.IconOverride or "entities/" .. weapon.ClassName .. ".png",
 						admin     = weapon.AdminOnly
 					})
-					p.DragHoverClick = function(hoverTime)
-						local icon = dragndrop.GetDroppable()[1]
-						local t = icon:GetTable()
-						if icon:GetName() == "ContentIcon" and t.m_Type == "weapon" then
-							-- TODO: re-arrangement
-						end
-					end
+					p.f_table = g_favorites.weapons
+					p.f_index = i
+					p.f_item  = weapon
 				end
 			end
 
@@ -245,7 +308,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				empty = false
 				Header(self, "Props")
 				-- Removing invalid props is both hard to do, and won't really break anything; just show an error model.
-				for k, prop in pairs(g_favorites.props) do
+				for i, prop in pairs(g_favorites.props) do
 					local mdl = prop
 					local skinID = nil
 					if string.match(prop, ":") then
@@ -254,7 +317,10 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 						mdl = s1
 						skinID = tonumber(s2)
 					end
-					spawnmenu.CreateContentIcon("model", self.PropPanel, {model = mdl, skin = skinID})
+					local p = spawnmenu.CreateContentIcon("model", self.PropPanel, {model = mdl, skin = skinID})
+					p.f_table = g_favorites.props
+					p.f_index = i
+					p.f_item  = prop
 				end
 			end
 
@@ -273,19 +339,22 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				end)
 				if save then Save(g_file) end
 
-				for k, npc in pairs(g_favorites.npcs) do
+				for i, npc in pairs(g_favorites.npcs) do
 					local entity = GetEntityFromList("NPC", npc)
 					local nameOverride = nil -- Fixes for weird name overlaps.
 					if npc == "npc_combine_s" then nameOverride = "Combine Soldier" -- Would be "Combine Elite".
 					elseif npc == "npc_vortigaunt" then nameOverride = "Vortigaunt" end -- Would be "Uriah".
 
-					spawnmenu.CreateContentIcon("npc", self.PropPanel, {
+					local p =spawnmenu.CreateContentIcon("npc", self.PropPanel, {
 						nicename  = nameOverride or entity.Name or npc,
 						spawnname = npc,
 						material  = entity.IconOverride or "entities/" .. npc .. ".png",
 						weapon    = entity.Weapons,
 						admin     = entity.AdminOnly
 					})
+					p.f_table = g_favorites.npcs
+					p.f_index = i
+					p.f_item  = npc
 				end
 			end
 
@@ -304,7 +373,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				end)
 				if save then Save(g_file) end
 
-				for k, vehicle in pairs(g_favorites.vehicles) do
+				for i, vehicle in pairs(g_favorites.vehicles) do
 					local simfphys = GetEntityFromList("simfphys_vehicles", vehicle)
 					local entity = GetEntityFromList("Vehicles", vehicle) or simfphys
 					local icon = spawnmenu.CreateContentIcon("vehicle", self.PropPanel, {
@@ -313,6 +382,9 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 						material  = entity.IconOverride or "entities/" .. vehicle .. ".png",
 						admin     = entity.AdminOnly
 					})
+					icon.f_table = g_favorites.vehicles
+					icon.f_index = i
+					icon.f_item  = vehicle
 					if simfphys != nil then
 						icon.DoClick = function()
 							surface.PlaySound("ui/buttonclickrelease.wav") -- Fake spawn sound.
@@ -345,7 +417,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				end)
 				if save then Save(g_file) end
 
-				for k, e in pairs(g_favorites.entities) do
+				for i, e in pairs(g_favorites.entities) do
 					if e.isPill then
 						local icon = spawnmenu.CreateContentIcon("entity", self.PropPanel, {
 							nicename  = e.printName or e.name,
@@ -361,6 +433,9 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 						icon.isPill = true
 						icon.m_MaterialName = e.icon
 						icon.m_NiceName = e.printName
+						icon.f_table = g_favorites.entities
+						icon.f_index = i
+						icon.f_item  = e
 					else
 						local entity = GetEntityFromList("SpawnableEntities", e) or
 							GetEntityFromList("gDisasters_Equipment", e) or -- "WOULDN'T IT BE FUNNY IF WE HAD 5 SEPERATE LISTS FOR FUCKING ENTITIES :)))"
@@ -368,12 +443,15 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 							GetEntityFromList("gDisasters_Weather", e)   or
 							GetEntityFromList("gDisasters_Buildings", e) or
 							GetEntityFromList("gDisasters_Disasters", e)
-						spawnmenu.CreateContentIcon(entity.ScriptedEntityType or "entity", self.PropPanel, {
+						local p = spawnmenu.CreateContentIcon(entity.ScriptedEntityType or "entity", self.PropPanel, {
 							nicename  = entity.Name or entity.PrintName or e,
 							spawnname = e,
 							material  = entity.IconOverride or "entities/" .. e .. ".png",
 							admin     = entity.AdminOnly
 						})
+						p.f_table = g_favorites.entities
+						p.f_index = i
+						p.f_item  = e
 					end
 				end
 			end
@@ -382,17 +460,20 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				empty = false
 				Header(self, "Dupes")
 				-- Same deal with dupes, they don't really cause any problems if broken.
-				for k, dupe in pairs(g_favorites.dupes) do
-					local currentWeapon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
+				for i, dupe in pairs(g_favorites.dupes) do
+					local p = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
 						nicename  = dupe,
 						spawnname = "__dupe",
 						material  = "dupes/" .. dupe .. ".jpg",
 						admin     = false
 					})
-					currentWeapon.DoClick = function()
+					p.DoClick = function()
 						surface.PlaySound("ui/buttonclickrelease.wav")
 						RunConsoleCommand("dupe_arm", "dupes/" .. dupe .. ".dupe")
 					end
+					p.f_table = g_favorites.dupes
+					p.f_index = i
+					p.f_item  = dupe
 				end
 			end
 
