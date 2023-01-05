@@ -9,7 +9,6 @@
 -- TODO: workshop dupes
 -- TODO: bodygroups
 --- Tier 4: Additional Features
--- TODO: clear tab
 -- TODO: modifiable spawnmenu position
 -- TODO: right click change category
 -- TODO: rename categories
@@ -521,7 +520,7 @@ function drawer:AddCheckbox(text, cvar)
 end
 local g_skipChange = true
 function drawer:Init()
-	self:SetOpenSize(200)
+	self:SetOpenSize(225)
 	self:DockPadding(15, 10, 15, 10)
 
 	local text = vgui.Create("DTextEntry", self)
@@ -561,6 +560,18 @@ function drawer:Init()
 		file.Delete(g_file)
 		RunConsoleCommand("spawnmenu_reload")
 		print("Deleted " .. g_file .. "!")
+	end
+
+	local clear = vgui.Create("DButton", self)
+	clear:Dock(TOP)
+	clear:DockMargin(0, 5, 0, 0)
+	clear:SetDark(true)
+	clear:SetText("Clear Current Category")
+	clear.DoClick = function()
+		file.Delete(g_file)
+		SaveEmpty(g_file)
+		RunConsoleCommand("spawnmenu_reload")
+		print("Cleared " .. g_file .. "!")
 	end
 
 	local bLabel = vgui.Create("DLabel", self)
