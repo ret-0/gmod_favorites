@@ -27,6 +27,7 @@ function Favorites()
 	r.entities = {}
 	r.vehicles = {}
 	r.dupes = {}
+	r.materials = {}
 	return r
 end
 local g_favorites = Favorites()
@@ -121,8 +122,11 @@ end
 
 -- Load(string f): Loads JSON from file to g_favorites. Creates new empty file if not there.
 function Load(f)
+	g_favorites = Favorites()
 	local json = file.Read(f)
-	if json != nil then g_favorites = util.JSONToTable(json)
+	if json != nil then
+		local loaded = util.JSONToTable(json)
+		for k, v in pairs(loaded) do g_favorites[k] = v end
 	else SaveEmpty(f) end
 end
 
@@ -490,6 +494,37 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				end
 			end
 
+			if table.IsEmpty(g_favorites.materials) == false then
+				empty = false
+				Header(self, "Materials")
+				for i, material in pairs(g_favorites.materials) do
+					local p = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
+						nicename  = material,
+						spawnname = material,
+						material  = material,
+						admin     = false
+					})
+					p.m_Type = "material"
+					-- I truly cannot find where any of this is implemented so let's just emulate the functionality ourselves lol.
+					local LoadMaterial = function()
+						surface.PlaySound("ui/buttonclickrelease.wav")
+						LocalPlayer():ConCommand("material_override " .. material)
+						LocalPlayer():ConCommand("gmod_toolmode material")
+						LocalPlayer():ConCommand("use gmod_tool")
+					end
+					p.OpenMenu = function(self)
+						local menu = DermaMenu()
+						menu:AddOption("#spawnmenu.menu.copy", function() SetClipboardText(self:GetSpawnName()) end):SetIcon("icon16/page_copy.png")
+						menu:AddOption("Use with Material Tool", function() LoadMaterial() end):SetIcon("icon16/pencil.png")
+						menu:Open()
+					end
+					p.DoClick = function() LoadMaterial() end
+					p.f_table = g_favorites.materials
+					p.f_index = i
+					p.f_item  = material
+				end
+			end
+
 			if empty then
 				local tutorial = GetConVar("favorites_tutorial"):GetBool()
 				if tutorial then
@@ -686,6 +721,9 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 				SaveRefresh()
 			elseif t.m_Type == "pill" then
 				Toggle(g_favorites.entities, PillFromPanel(t)) -- Yeah it's kinda an entity, sure whatever.
+				SaveRefresh()
+			elseif t.m_Type == "material" then
+				Toggle(g_favorites.materials, hovered.m_SpawnName)
 				SaveRefresh()
 			end
 		elseif hovered:GetName() == "SpawnIcon" then
