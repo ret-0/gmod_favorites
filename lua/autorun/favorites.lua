@@ -317,6 +317,10 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 						skinID = tonumber(s2)
 					end
 					local p = spawnmenu.CreateContentIcon("model", self.PropPanel, {model = mdl, skin = skinID})
+					p.DoClick = function(s) -- Another workaround.
+						surface.PlaySound("ui/buttonclickrelease.wav")
+						LocalPlayer():ConCommand("gm_spawn " .. s:GetModelName() .. ' ' .. tostring(s:GetSkinID() or 0), s:GetBodyGroup() or "")
+					end
 					p.f_table = g_favorites.props
 					p.f_index = i
 					p.f_item  = prop
@@ -344,13 +348,23 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 					if npc == "npc_combine_s" then nameOverride = "Combine Soldier" -- Would be "Combine Elite".
 					elseif npc == "npc_vortigaunt" then nameOverride = "Vortigaunt" end -- Would be "Uriah".
 
-					local p =spawnmenu.CreateContentIcon("npc", self.PropPanel, {
+					local p = spawnmenu.CreateContentIcon("npc", self.PropPanel, {
 						nicename  = nameOverride or entity.Name or npc,
 						spawnname = npc,
 						material  = entity.IconOverride or "entities/" .. npc .. ".png",
 						weapon    = entity.Weapons,
 						admin     = entity.AdminOnly
 					})
+					p.DoClick = function() -- Workaround for the new update breaking something. Very cool. Thank you based Garry.
+						if !entity.Weapons then entity.Weapons = {} end
+						local weapon = table.Random(entity.Weapons) or ""
+						local gmod_npcweapon = GetConVar("gmod_npcweapon"):GetString()
+						if (gmod_npcweapon != "") then weapon = gmod_npcweapon end
+						-- Fix: Use LocalPlayer():ConCommand() instead of RunConsoleCommand().
+						-- Your guess is as good as mine on why this works.
+						LocalPlayer():ConCommand('gmod_spawnnpc ' .. npc .. ' ' .. weapon)
+						surface.PlaySound("ui/buttonclickrelease.wav")
+					end
 					p.f_table = g_favorites.npcs
 					p.f_index = i
 					p.f_item  = npc
