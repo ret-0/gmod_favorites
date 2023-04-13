@@ -172,7 +172,9 @@ Load(g_file) -- Load favorites/favorites.json.
 if CLIENT then -- This is madness.
 	local originalStopDragging = dragndrop.StopDragging
 	dragndrop.StopDragging = function()
-		local src = dragndrop.GetDroppable()[1]
+		local srctable = dragndrop.GetDroppable()
+        	if !srctable or !srctable[1] then return originalStopDragging() end 
+        	local src = srctable[1]
 		local dst = vgui.GetHoveredPanel()
 		if dst == nil then return end
 		local panelName = dst:GetName()
