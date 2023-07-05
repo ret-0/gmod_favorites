@@ -542,7 +542,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 						language.GetPhrase("gmod_favorites.tutorial8") .. "\n" ..
 						language.GetPhrase("gmod_favorites.tutorial9")
 					)
-				else Text(self, "\n" .. language.GetPhrase("#gmod_favorites.no_tutorial")) end
+				else Text(self, "\n" .. language.GetPhrase("#gmod_favorites.tutorial1")) end
 			end
 		end
 
