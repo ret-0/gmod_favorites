@@ -205,7 +205,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 	for i, filename in ipairs(files) do
 		local name = string.StripExtension(filename:gsub("#%l", string.upper):gsub("#", "")) -- Fix casing and remove extension.
-		if filename == "favorites.json" then name = "Favorites" end
+		if filename == "favorites.json" then name = "#gmod_favorites.favorites" end
 		local node = tree:AddNode(name, "icon16/folder.png")
 
 		node.DoPopulate = function(self)
@@ -262,9 +262,9 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 			local saveCurrentWeapon = GetConVar("favorites_save_weapon"):GetBool()
 			if saveCurrentWeapon then
-				Header(self, "Weapons")
+				Header(self, "#spawnmenu.category.weapons")
 				local currentWeapon = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
-					nicename	= "Save Current Weapon",
+					nicename	= "#gmod_favorites.save_weapon",
 					spawnname	= "__dummy",
 					material	= "gmod/save.png",
 					admin		  = false
@@ -282,7 +282,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 			local empty = true
 			if table.IsEmpty(g_favorites.weapons) == false then
 				empty = false
-				if saveCurrentWeapon == false then Header(self, "Weapons") end
+				if saveCurrentWeapon == false then Header(self, "#spawnmenu.category.weapons") end
 
 				local save = false
 				TableRemove(g_favorites.weapons, function(t, i, j) -- TODO: more explicit
@@ -311,7 +311,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 			if table.IsEmpty(g_favorites.props) == false then
 				empty = false
-				Header(self, "Props")
+				Header(self, "#gmod_favorites.props")
 				-- Removing invalid props is both hard to do, and won't really break anything; just show an error model.
 				for i, prop in pairs(g_favorites.props) do
 					local mdl = prop
@@ -335,7 +335,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 			if table.IsEmpty(g_favorites.npcs) == false then
 				empty = false
-				Header(self, "NPCs")
+				Header(self, "#spawnmenu.category.npcs")
 
 				local save = false
 				TableRemove(g_favorites.npcs, function(t, i, j)
@@ -379,7 +379,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 			if table.IsEmpty(g_favorites.vehicles) == false then
 				empty = false
-				Header(self, "Vehicles")
+				Header(self, "#spawnmenu.category.vehicles")
 
 				local save = false
 				TableRemove(g_favorites.vehicles, function(t, i, j)
@@ -415,7 +415,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 			if table.IsEmpty(g_favorites.entities) == false then
 				empty = false
-				Header(self, "Entities")
+				Header(self, "#spawnmenu.category.entities")
 
 				local save = false
 				TableRemove(g_favorites.entities, function(t, i, j)
@@ -477,7 +477,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 			if table.IsEmpty(g_favorites.dupes) == false then
 				empty = false
-				Header(self, "Dupes")
+				Header(self, "#spawnmenu.category.dupes")
 				-- Same deal with dupes, they don't really cause any problems if broken.
 				for i, dupe in pairs(g_favorites.dupes) do
 					local p = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
@@ -498,7 +498,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 			if table.IsEmpty(g_favorites.materials) == false then
 				empty = false
-				Header(self, "Materials")
+				Header(self, "#gmod_favorites.materials")
 				for i, material in pairs(g_favorites.materials) do
 					local p = spawnmenu.CreateContentIcon("weapon", self.PropPanel, {
 						nicename  = material,
@@ -517,7 +517,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 					p.OpenMenu = function(self)
 						local menu = DermaMenu()
 						menu:AddOption("#spawnmenu.menu.copy", function() SetClipboardText(self:GetSpawnName()) end):SetIcon("icon16/page_copy.png")
-						menu:AddOption("Use with Material Tool", function() LoadMaterial() end):SetIcon("icon16/pencil.png")
+						menu:AddOption("#gmod_favorites.use_material", function() LoadMaterial() end):SetIcon("icon16/pencil.png")
 						menu:Open()
 					end
 					p.DoClick = function() LoadMaterial() end
@@ -532,17 +532,17 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 				if tutorial then
 					Text(self,
 						"\n" ..
-						"You currently don't have anything favorited.\n\n" ..
-						"You can favorite an item by pressing E on it in the Spawn Menu.\n" ..
-						"You can unfavorite a favorited item the same way.\n" ..
-						"Favorited items will be saved to the currently selected category. (The folder on the left.)\n" ..
-						"You may create a category by pressing the \"Add Category\" button in the bottom left.\n" ..
-						"Clicking \"Save Current Weapon\" will allow you to save a weapon with all of it's ArcCW attachments.\n" ..
-						"Your favorites are saved on disk in \"[Garry's Mod Directory]/garrysmod/data/favorites/\".\n" ..
-						"If you have any suggestions or errors to report, please comment!\n" ..
-						"That's about it, have fun! :^)"
+						language.GetPhrase("gmod_favorites.tutorial1") .. "\n\n" ..
+						language.GetPhrase("gmod_favorites.tutorial2") .. "\n" ..
+						language.GetPhrase("gmod_favorites.tutorial3") .. "\n" ..
+						language.GetPhrase("gmod_favorites.tutorial4") .. "\n" ..
+						language.GetPhrase("gmod_favorites.tutorial5") .. "\n" ..
+						language.GetPhrase("gmod_favorites.tutorial6") .. "\n" ..
+						language.GetPhrase("gmod_favorites.tutorial7") .. "\n" ..
+						language.GetPhrase("gmod_favorites.tutorial8") .. "\n" ..
+						language.GetPhrase("gmod_favorites.tutorial9")
 					)
-				else Text(self, "You currently don't have anything favorited.") end
+				else Text(self, "\n" .. language.GetPhrase("#gmod_favorites.tutorial1")) end
 			end
 		end
 
@@ -577,13 +577,13 @@ function drawer:Init()
 	local text = vgui.Create("DTextEntry", self)
 	text:Dock(TOP)
 	text:DockMargin(0, 5, 0, 0)
-	text:SetPlaceholderText("Name")
+	text:SetPlaceholderText("#gmod_favorites.name")
 
 	local add = vgui.Create("DButton", self)
 	add:Dock(TOP)
 	add:DockMargin(0, 5, 0, 0)
 	add:SetDark(true)
-	add:SetText("Add Category")
+	add:SetText("#gmod_favorites.add_category")
 	add.DoClick = function()
 		local name = text:GetValue()
 		-- Disallowed Windows and Unix characters.
@@ -605,7 +605,7 @@ function drawer:Init()
 	del:Dock(TOP)
 	del:DockMargin(0, 5, 0, 0)
 	del:SetDark(true)
-	del:SetText("Delete Current Category")
+	del:SetText("#gmod_favorites.delete_category")
 	del.DoClick = function()
 		if g_file == "favorites/favorites.json" then return end
 		file.Delete(g_file)
@@ -617,7 +617,7 @@ function drawer:Init()
 	clear:Dock(TOP)
 	clear:DockMargin(0, 5, 0, 0)
 	clear:SetDark(true)
-	clear:SetText("Clear Current Category")
+	clear:SetText("#gmod_favorites.clear_category")
 	clear.DoClick = function()
 		file.Delete(g_file)
 		SaveEmpty(g_file)
@@ -630,7 +630,7 @@ function drawer:Init()
 	bLabel:DockMargin(0, 0, 0, 0)
 	bLabel:SetSize(25, 25)
 	bLabel:SetTextColor(Color(0, 0, 0))
-	bLabel:SetText("Favorite Key Bind:")
+	bLabel:SetText("#gmod_favorites.bind")
 	local binder = vgui.Create("DBinder", self)
 	binder:Dock(TOP)
 	binder:DockMargin(0, 0, 0, 0)
@@ -639,7 +639,7 @@ function drawer:Init()
 	function binder:OnChange(key) RunConsoleCommand("favorites_key", tostring(key)) end
 	local useMode = GetConVar("favorites_use_mode"):GetBool()
 	if useMode then binder:SetEnabled(false) end
-	local useModeCheckBox = self:AddCheckbox("+use Mode", "favorites_use_mode")
+	local useModeCheckBox = self:AddCheckbox("#gmod_favorites.use_mode", "favorites_use_mode")
 	useModeCheckBox.OnChange = function(bVal)
 		if g_skipChange then -- Very dumb.
 			g_skipChange = false
@@ -651,8 +651,8 @@ function drawer:Init()
 		end
 	end
 
-	self:AddCheckbox("Show \"Save Current Weapon\"?", "favorites_save_weapon")
-	self:AddCheckbox("Show tutorial?", "favorites_tutorial")
+	self:AddCheckbox("#gmod_favorites.show_save_weapon", "favorites_save_weapon")
+	self:AddCheckbox("#gmod_favorites.show_tutorial", "favorites_tutorial")
 
 	self:Open()
 end
@@ -661,7 +661,7 @@ if vgui != nil then vgui.Register("FavoriteOptions", drawer, "DDrawer") end
 
 -- Add our Spawn Menu tab.
 if spawnmenu != nil then
-	spawnmenu.AddCreationTab("Favorites", function()
+	spawnmenu.AddCreationTab("#gmod_favorites.favorites", function()
 		g_ctrl = vgui.Create("SpawnmenuContentPanel")
 		g_ctrl:CallPopulateHook("PopulateFavorites")
 		local sidebar = g_ctrl.ContentNavBar
