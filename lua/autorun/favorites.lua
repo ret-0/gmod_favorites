@@ -40,6 +40,7 @@ CreateClientConVar("favorites_save_weapon", "1")
 CreateClientConVar("favorites_tutorial", "1")
 CreateClientConVar("favorites_key", tostring(KEY_E))
 CreateClientConVar("favorites_use_mode", "0")
+CreateClientConVar("favorites_debug", "0")
 
 --- Functions
 
@@ -694,7 +695,24 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 	if cache and g_firstPressed then
 		local hovered = vgui.GetHoveredPanel()
 		if hovered == nil then return end -- No panel hovered.
-		-- PrintTable(hovered:GetTable())
+
+		if GetConVar("favorites_debug"):GetBool() then
+			PrintTable(hovered:GetTable())
+			if hovered.ClassName == "DHTML" then
+				print("Dumping HTML.")
+				hovered:RunJavascript([[(function () {
+						var s = (document.body && document.body.outerHTML) ? document.body.outerHTML : "";
+						var chunks = [];
+						for (var i = 0; i < s.length; i += 4096) {
+							chunks.push(s.substring(i, i + 4096));
+						}
+						for (var j = 0; j < chunks.length; j++) {
+							console.log(chunks[j]);
+						}
+					})();
+				]])
+			end
+		end
 
 		local panelName = hovered:GetName()
 		if panelName == "ContentIcon" or panelName == "UCWepSel" then -- Urban Decay is stupid.
@@ -743,7 +761,7 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 				Toggle(g_favorites.dupes, r)
 				SaveRefresh()
 			end)
-			hovered:RunJavascript("window.onmousemove = function(e) { favorites.steal(e.target.parentNode.querySelector('name').querySelector('label').innerHTML); window.onmousemove = null; };")
+			hovered:RunJavascript("window.onmousemove = function(e) { favorites.steal(e.target.parentNode.querySelector('name').querySelector('label').innerText); window.onmousemove = null; };")
 			-- Force a mousemove event. Should be virtually unnoticable to the user.
 			local x, y = input.GetCursorPos()
 			input.SetCursorPos(x, y + 1)
