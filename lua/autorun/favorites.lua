@@ -384,7 +384,8 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 				local save = false
 				TableRemove(g_favorites.vehicles, function(t, i, j)
-					if GetEntityFromList("Vehicles", t[i]) == nil and GetEntityFromList("simfphys_vehicles", t[i]) == nil then -- Delete if invalid.
+					-- Delete if invalid.
+					if GetEntityFromList("Vehicles", t[i]) == nil and GetEntityFromList("simfphys_vehicles", t[i]) == nil and scripted_ents.GetStored(t[i]) == nil then
 						print("Removing invalid vehicle: " .. t[i] .. "!")
 						save = true
 						return false
@@ -395,9 +396,10 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 				for i, vehicle in pairs(g_favorites.vehicles) do
 					local simfphys = GetEntityFromList("simfphys_vehicles", vehicle)
-					local entity = GetEntityFromList("Vehicles", vehicle) or simfphys
+					local sent = scripted_ents.GetStored(vehicle)["t"]
+					local entity = GetEntityFromList("Vehicles", vehicle) or simfphys or sent
 					local icon = spawnmenu.CreateContentIcon("vehicle", self.PropPanel, {
-						nicename  = entity.Name or vehicle,
+						nicename  = entity.Name or entity.PrintName or vehicle,
 						spawnname = vehicle,
 						material  = entity.IconOverride or "entities/" .. vehicle .. ".png",
 						admin     = entity.AdminOnly
@@ -409,6 +411,11 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 						icon.DoClick = function()
 							surface.PlaySound("ui/buttonclickrelease.wav") -- Fake spawn sound.
 							RunConsoleCommand("simfphys_spawnvehicle", vehicle)
+						end
+					elseif sent != nil then
+						icon.DoClick = function()
+							surface.PlaySound("ui/buttonclickrelease.wav")
+							RunConsoleCommand("gm_spawnsent", vehicle)
 						end
 					end
 				end
@@ -427,7 +434,8 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 					GetEntityFromList("gDisasters_Weapons", t[i]) == nil and
 					GetEntityFromList("gDisasters_Weather", t[i]) == nil and
 					GetEntityFromList("gDisasters_Buildings", t[i]) == nil and
-					GetEntityFromList("gDisasters_Disasters", t[i]) == nil
+					GetEntityFromList("gDisasters_Disasters", t[i]) == nil and
+					scripted_ents.GetStored(t[i]) == nil
 					then -- Delete if invalid.
 						print("Removing invalid entity: " .. t[i] .. "!")
 						save = true
@@ -462,7 +470,8 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 							GetEntityFromList("gDisasters_Weapons", e)   or
 							GetEntityFromList("gDisasters_Weather", e)   or
 							GetEntityFromList("gDisasters_Buildings", e) or
-							GetEntityFromList("gDisasters_Disasters", e)
+							GetEntityFromList("gDisasters_Disasters", e) or
+							scripted_ents.GetStored(e)
 						local p = spawnmenu.CreateContentIcon(entity.ScriptedEntityType or "entity", self.PropPanel, {
 							nicename  = entity.Name or entity.PrintName or e,
 							spawnname = e,
@@ -736,7 +745,9 @@ hook.Add("Think", "Favorite", function() -- I wanted to avoid this hook, but it'
 				Toggle(g_favorites.vehicles, t:GetSpawnName())
 				SaveRefresh()
 			elseif t.m_Type == "entity" then
+				local sent = scripted_ents.GetStored(t:GetSpawnName())
 				if t.isPill then Toggle(g_favorites.entities, PillFromPanel(t))
+				elseif sent != nil and (sent["Base"]:find("^base_glide") ~= nil or sent["Base"]:find("^glide_") ~= nil) then Toggle(g_favorites.vehicles, t:GetSpawnName())
 				else Toggle(g_favorites.entities, t.m_SpawnName) end
 				SaveRefresh()
 			elseif t.m_Type == "pill" then
