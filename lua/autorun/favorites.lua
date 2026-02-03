@@ -396,8 +396,13 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 
 				for i, vehicle in pairs(g_favorites.vehicles) do
 					local simfphys = GetEntityFromList("simfphys_vehicles", vehicle)
-					local sent = scripted_ents.GetStored(vehicle)["t"]
-					local entity = GetEntityFromList("Vehicles", vehicle) or simfphys or sent
+					local sent = scripted_ents.GetStored(vehicle)
+					local sentT = nil
+					if sent then
+						sentT = sent["t"]
+					end
+					
+					local entity = GetEntityFromList("Vehicles", vehicle) or simfphys or sentT
 					local icon = spawnmenu.CreateContentIcon("vehicle", self.PropPanel, {
 						nicename  = entity.Name or entity.PrintName or vehicle,
 						spawnname = vehicle,
@@ -412,7 +417,7 @@ hook.Add("PopulateFavorites", "AddFavoritesContent", function(panelContent, tree
 							surface.PlaySound("ui/buttonclickrelease.wav") -- Fake spawn sound.
 							RunConsoleCommand("simfphys_spawnvehicle", vehicle)
 						end
-					elseif sent != nil then
+					elseif sentT != nil then
 						icon.DoClick = function()
 							surface.PlaySound("ui/buttonclickrelease.wav")
 							RunConsoleCommand("gm_spawnsent", vehicle)
